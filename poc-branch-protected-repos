@@ -1,0 +1,77 @@
+import requests
+
+# Replace by your personal access token
+TOKEN = '*******'  
+HEADERS = {
+    'Authorization': f'token {TOKEN}',
+    'Accept': 'application/vnd.github.v3+json'
+    'X-GitHub-Api-Version: 2022-11-28'
+}
+
+owner = "DEFRA"  
+repos_url = f'https://api.github.com/orgs/{owner}/repos'
+# Parameters_for_pagination
+# We require these lines_of code to_list all repos in_all pages
+
+params = {
+    "per_page": 100,  # Max allowed value
+    "page": 1         # Start with page 1
+}
+
+all_repos = []
+
+while True:
+    response = requests.get(repos_url, headers=HEADERS, params=params)
+    repos = response.json()
+
+    if not repos:
+        break  # Stop when no more repositories are returned
+
+    all_repos.extend(repos)
+    params['page'] += 1  # Move to_the next page
+
+count = 0
+count_red = 0
+count_green = 0
+result_red = []
+
+#Loop through all the repos & check the ones that have 'epr-' in_their names
+for repo in all_repos:
+   if "epr-" in repo["name"]:
+
+        myrepo=repo["name"]
+        branch_url = f'https://api.github.com/repos/{owner}/{myrepo}/branches'
+
+        #Get the branches on_all the EPR repos, check 'protected' value within each branch
+        #Accordingly the variables are incremented 
+        
+        branch_response = requests.get(branch_url, headers=HEADERS)
+        branches = branch_response.json()
+        protected_branches = []
+        for branch in branches:
+            if branch['protected'] == True:
+                protected_branches += [branch['name']]
+        
+        if protected_branches != []:
+            print(f"Protected Branches in {myrepo}:", protected_branches)
+            count_green += 1
+        else:
+            reslt = f"{myrepo} is not branch protected\n"
+           
+            result_red.append(reslt)
+            count_red += 1
+        count+= 1
+
+output_red = ''.join(result_red)
+print(f'\n')
+print(output_red)
+
+print(f"Total EPR repos is: ", count)
+print(f"Number of repos with branch protection enabled: ", count_green)  
+print(f"Number of repositories with no branch protection rules: ", count_red)  
+
+
+
+
+
+
